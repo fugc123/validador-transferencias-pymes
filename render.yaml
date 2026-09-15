@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: validador-transferencias-pymes
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: WEBHOOK_SECRET
+        generateValue: true
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_EMAIL
+        value: admin@kiosko.com
+      - key: ADMIN_PASSWORD
+        generateValue: true
