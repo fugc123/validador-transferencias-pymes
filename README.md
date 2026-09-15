@@ -3,7 +3,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-24+-green.svg)](https://nodejs.org/)
 [![Clean Architecture](https://img.shields.io/badge/Architecture-Clean%20%2F%20Hexagonal-orange.svg)](#-arquitectura)
-[![Tests Passing](https://img.shields.io/badge/tests-24%2F24%20passing-brightgreen.svg)](#-pruebas-automatizadas)
+[![Tests Passing](https://img.shields.io/badge/tests-25%2F25%20passing-brightgreen.svg)](#-pruebas-automatizadas)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Sistema open-source en **TypeScript** diseñado para resolver el cuello de botella más común en cajas de comercios (kioskos, almacenes, farmacias, cafeterías): **verificar transferencias bancarias en tiempo real sin requerir que la dueña revise su celular ni compartir contraseñas de correos o cuentas bancarias con los empleados.**
@@ -131,10 +131,10 @@ Abrir en el navegador: **[http://localhost:3000](http://localhost:3000)**
 
 ## 🧪 Pruebas Automatizadas
 
-El proyecto cuenta con suites completas de pruebas unitarias y de integración E2E con **Jest** y **Supertest**:
+El proyecto cuenta con suites completas de pruebas unitarias y de integración E2E con **Jest** y **Supertest** (25/25 tests passing):
 
 ```bash
-# Ejecutar todas las pruebas (24/24 passing)
+# Ejecutar todas las pruebas (25/25 passing)
 npm test
 
 # Ejecutar solo unitarias
@@ -146,37 +146,64 @@ npm run test:e2e
 
 ---
 
-## 🐳 Despliegue con Docker
+## 🌐 Pruebas Locales con Gmail (¿Por qué no funciona con `localhost`?)
 
-Podés correr el validador en cualquier VPS o servidor con Docker:
+> [!IMPORTANT]
+> **Google Apps Script se ejecuta en los servidores en la nube de Google**, no en tu computadora.  
+> Si configuras `http://localhost:3000` en Apps Script, Google intentará conectarse a su propio datacenter y fallará con `Address unavailable`.
+
+Para probar con tu Gmail real desde tu máquina local antes de desplegar a la nube, necesitas exponer tu puerto 3000 con un túnel HTTPS público temporal (recomendamos **Cloudflare Tunnel**):
 
 ```bash
-# Construir la imagen
-docker build -t validador-pymes .
-
-# Correr con volumen persistente para la base de datos
-docker run -d -p 3000:3000 -v kiosko_data:/app/data --name validador validador-pymes
+# En Windows (usando cloudflared o npx):
+npx cloudflared tunnel --url http://localhost:3000
 ```
+Copia la URL pública generada (ej: `https://tu-tunel-random.trycloudflare.com/api/webhook/email`) y úsala en tu script de Google.
 
 ---
 
-## 📧 Configuración en Gmail de la Dueña (Paso a Paso)
+## 📧 Configuración en Gmail de la Dueña (Automatización Serverless 24/7)
 
-1. Ingresar a [script.google.com](https://script.google.com/) con la cuenta de Gmail donde llegan los avisos bancarios.
-2. Hacer clic en **"Nuevo proyecto"**.
-3. Reemplazar el código por el contenido de [`google-apps-script/code.gs`](google-apps-script/code.gs).
-4. Configurar la variable `WEBHOOK_URL` con la URL de tu servidor (ej: `https://tu-app.onrender.com/api/webhook/email`).
-5. Configurar `WEBHOOK_SECRET` con la misma clave configurada en tu `.env`.
-6. Ir a **Activadores (reloj a la izquierda)** → **"Añadir activador"**:
-   - Función que se ejecuta: `procesarCorreosItau`
-   - Fuente del evento: `Según tiempo`
-   - Tipo de temporizador: `Temporizador por minutos`
-   - Intervalo: `Cada 1 minuto`
-7. Guardar y conceder permisos de lectura a la aplicación.
+El script de integración es **100% Serverless (FaaS)**: no requiere servidores intermediarios ni consumo permanente de CPU. Se despierta automáticamente en la nube de Google cada 60 segundos, procesa transferencias entrantes y se apaga de inmediato.
 
-### ❓ Solución de Problemas Comunes con Gmail
-- **"El webhook da error 401":** Asegurate de que el `WEBHOOK_SECRET` en `code.gs` sea idéntico al configurado en el servidor.
-- **"No detecta los correos":** Verificá que los correos en la bandeja de entrada provengan del remitente de Itaú y contengan la frase `"acreditada en cuenta"`. Si ya fueron leídos manualmente, marcalos como no leídos o quitá la etiqueta `Procesado_Kiosko` para volver a procesarlos.
+### Paso a Paso:
+
+1. **Crear el script en Google:**
+   - Ingresar a [script.google.com](https://script.google.com/) con la cuenta de Gmail donde llegan los avisos bancarios.
+   - Hacer clic en **"Nuevo proyecto"**.
+2. **Pegar el código:**
+   - Reemplazar todo el contenido del editor por el código de [`google-apps-script/code.gs`](google-apps-script/code.gs).
+3. **Configurar credenciales:**
+   - `WEBHOOK_URL`: La URL de tu servidor en producción (ej. de Render: `https://tu-app.onrender.com/api/webhook/email`) o la URL de tu túnel de prueba.
+   - `WEBHOOK_SECRET`: La misma clave secreta configurada en tu archivo `.env`.
+   - Guardar con `Ctrl + S`.
+4. **Autorizar permisos (Solo la primera vez):**
+   - Haz clic en **"Ejecutar"** arriba.
+   - Google mostrará una advertencia: *"Google no ha verificado esta aplicación"*. Esto es normal porque es un script privado creado por ti.
+   - Haz clic en **"Configuración avanzada"** (a la izquierda del botón azul).
+   - Haz clic en el enlace inferior **"Ir a [Nombre de tu proyecto] (no seguro)"**.
+   - Haz clic en **"Permitir"**.
+5. **Activar Automatización 24/7 (¡Para no tener que tocar "Ejecutar" nunca más!):**
+   - En la barra lateral izquierda, haz clic en el ícono del **Reloj** (**"Activadores"**).
+   - Clic en el botón azul abajo a la derecha: **"+ Añadir activador"**.
+   - Configuración:
+     - **Función que se ejecutará:** `procesarCorreosItau`
+     - **Fuente del evento:** `Según tiempo` *(Time-driven)*
+     - **Tipo de activador:** `Temporizador por minutos` *(Minutes timer)*
+     - **Intervalo de minutos:** `Cada 1 minuto`
+   - Clic en **"Guardar"**.
+
+¡Listo! A partir de ese momento, cada vez que un cliente transfiera por **Itaú**, **Banco GNB** o **UENO Bank**, Google lo detectará en menos de 60 segundos y lo enviará automáticamente a tu pantalla de caja.
+
+---
+
+## 🛡️ Panel Administrativo (`/admin.html`)
+
+El sistema incluye un dashboard exclusivo para el dueño del negocio:
+- **Acceso:** `http://localhost:3000/admin.html` (o tu dominio en la nube).
+- **Gestión de Cajeros:** Crear, editar contraseñas y eliminar cuentas de empleados.
+- **Selector de Banco Activo:** Definir cuál banco tiene prioridad en la caja (Itaú, Banco GNB, UENO Bank).
+- **Registro de Auditoría:** Historial completo de transferencias recibidas y reclamos con hora y cajero responsable.
 
 ---
 
