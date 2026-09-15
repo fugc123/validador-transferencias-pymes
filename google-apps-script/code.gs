@@ -1,37 +1,40 @@
 /**
- * GOOGLE APPS SCRIPT PARA GMAIL (Banco Itaú Paraguay -> Kiosko Validador)
+ * GOOGLE APPS SCRIPT PARA GMAIL (Banco Itaú, GNB, UENO Paraguay -> Kiosko Validador)
  * 
  * Instrucciones de instalación:
- * 1. Abre https://script.google.com con la cuenta de Gmail de tu amiga.
- * 2. Haz clic en "Nuevo proyecto".
- * 3. Pega todo este código en el editor (reemplazando el contenido existente).
- * 4. Cambia la variable WEBHOOK_URL con la URL pública de tu servidor (ej: de Render o Railway).
- *    Si estás probando con ngrok, pon la URL de ngrok.
- * 5. Haz clic en "Guardar" (ícono de disquete).
- * 6. Haz clic en el ícono de "Activadores" (reloj a la izquierda) -> "Añadir activador":
- *    - Función que se ejecutará: procesarCorreosItau
- *    - Fuentes del evento: Según tiempo (Time-driven)
- *    - Tipo de activador: Temporizador por minutos (Minutes timer)
- *    - Intervalo de minutos: Cada 1 minuto (o Cada 5 minutos)
- * 7. Guarda y autoriza los permisos de lectura de Gmail solicitados por Google.
- * ¡Listo! Cada vez que entre un mail de Itaú, se enviará automáticamente en menos de 60 segundos.
+ * 1. Abre https://script.google.com con tu cuenta de Gmail.
+ * 2. Reemplaza todo el código por este contenido.
+ * 3. Configura WEBHOOK_URL con la URL de Cloudflare o Render.
+ * 4. Guarda y haz clic en "Ejecutar" para probar.
  */
 
-const WEBHOOK_URL = 'https://tu-kiosko-app.onrender.com/api/webhook/email'; // <--- Cambiar por tu URL
+const WEBHOOK_URL = 'https://cruise-pet-painting-amp.trycloudflare.com/api/webhook/email';
 const WEBHOOK_SECRET = 'kiosko-secreto-2026';
 const LABEL_NAME = 'Procesado_Kiosko';
 
 function procesarCorreosItau() {
-  // Asegurar que existe la etiqueta para marcar procesados
   let label = GmailApp.getUserLabelByName(LABEL_NAME);
   if (!label) {
     label = GmailApp.createLabel(LABEL_NAME);
   }
 
-  // Buscar correos de transferencias bancarias (Itaú, Banco GNB, UENO Bank)
-  // Excluye los que ya tienen la etiqueta Procesado_Kiosko
-  const searchQuery = '("acreditada en cuenta" OR "Transferencia Interbancaria Recibida" OR "Recibiste una transferencia") -label:' + LABEL_NAME;
+  // Búsqueda flexible de correos bancarios que aún no fueron procesados
+  const searchQuery = '("itau" OR "transferencia" OR "acreditada" OR "comprobante" OR "gnb" OR "ueno") -label:' + LABEL_NAME;
+  Logger.log('🔍 1. Buscando correos con filtro: ' + searchQuery);
+
   const threads = GmailApp.search(searchQuery, 0, 10);
+  Logger.log('📬 2. Cantidad de hilos coincidentes encontrados: ' + threads.length);
+
+  if (threads.length === 0) {
+    Logger.log('⚠️ No se encontraron hilos con el filtro. Inspeccionando los últimos 5 correos de Recibidos:');
+    const inboxThreads = GmailApp.getInboxThreads(0, 5);
+    for (let k = 0; k < inboxThreads.length; k++) {
+      const subj = inboxThreads[k].getFirstMessageSubject();
+      const labels = inboxThreads[k].getLabels().map(function(l) { return l.getName(); }).join(', ');
+      Logger.log('   - Asunto: "' + subj + '" | Etiquetas: [' + labels + ']');
+    }
+    return;
+  }
 
   for (let i = 0; i < threads.length; i++) {
     const thread = threads[i];
@@ -42,7 +45,8 @@ function procesarCorreosItau() {
       const body = msg.getPlainBody();
       const html = msg.getBody();
 
-      // Enviar al servidor del kiosko
+      Logger.log('➡️ Procesando correo: "' + msg.getSubject() + '" (ID: ' + msg.getId() + ')');
+
       try {
         const payload = JSON.stringify({
           text: body,
@@ -63,13 +67,19 @@ function procesarCorreosItau() {
         };
 
         const response = UrlFetchApp.fetch(WEBHOOK_URL, options);
-        Logger.log('Respuesta del servidor para msg ' + msg.getId() + ': ' + response.getContentText());
+        const respText = response.getContentText();
+        Logger.log('✅ Servidor respondió (HTTP ' + response.getResponseCode() + '): ' + respText);
 
-        // Marcar el hilo como procesado y leído
-        thread.addLabel(label);
-        thread.markRead();
+        // Si el servidor lo aceptó (200 o 201), marcar como procesado
+        if (response.getResponseCode() >= 200 && response.getResponseCode() < 300) {
+          thread.addLabel(label);
+          thread.markRead();
+          Logger.log('🏷️ Etiqueta ' + LABEL_NAME + ' agregada con éxito.');
+        } else {
+          Logger.log('⚠️ El servidor devolvió error o no reconoció el formato.');
+        }
       } catch (err) {
-        Logger.log('Error enviando correo ' + msg.getId() + ': ' + err.toString());
+        Logger.log('❌ Error enviando correo ' + msg.getId() + ': ' + err.toString());
       }
     }
   }
