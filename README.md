@@ -3,7 +3,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-24+-green.svg)](https://nodejs.org/)
 [![Clean Architecture](https://img.shields.io/badge/Architecture-Clean%20%2F%20Hexagonal-orange.svg)](#-arquitectura)
-[![Tests Passing](https://img.shields.io/badge/tests-16%2F16%20passing-brightgreen.svg)](#-pruebas-automatizadas)
+[![Tests Passing](https://img.shields.io/badge/tests-24%2F24%20passing-brightgreen.svg)](#-pruebas-automatizadas)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Sistema open-source en **TypeScript** diseñado para resolver el cuello de botella más común en cajas de comercios (kioskos, almacenes, farmacias, cafeterías): **verificar transferencias bancarias en tiempo real sin requerir que la dueña revise su celular ni compartir contraseñas de correos o cuentas bancarias con los empleados.**
@@ -41,15 +41,19 @@ src/
 │   └── ports/                   # Contratos (ITransferRepository, IUserRepository, IBankParser)
 ├── infrastructure/              # Adaptadores Tecnológicos
 │   ├── database/                # SqliteTransferRepository y SqliteUserRepository (node:sqlite)
-│   └── parsers/                 # BankParserFactory (Patrón Strategy multi-banco)
-│       └── itau-paraguay.parser.ts
+│   └── parsers/                 # BankParserFactory (Patrón Strategy multi-banco: Itaú, GNB, UENO)
+│       ├── itau-paraguay.parser.ts
+│       ├── gnb-paraguay.parser.ts
+│       └── ueno-bank.parser.ts
 ├── application/                 # Casos de Uso del Negocio
-│   ├── use-cases/               # IngestEmail, VerifyTransfer, ClaimTransfer, AuthUseCases
+│   ├── use-cases/               # IngestEmail, VerifyTransfer, ClaimTransfer, AuthUseCases, AdminUseCases
 │   └── dto/                     # Contratos tipados de entrada y salida
 ├── presentation/                # Controladores y Middlewares HTTP
-│   ├── controllers/             # TransferController y AuthController
+│   ├── controllers/             # TransferController, AuthController, AdminController
 │   └── middlewares/             # WebhookAuth, AuthenticateJwt, RequireRole, RateLimiter, Helmet
-└── public/                      # UI de Punto de Venta (Audio sintetizado con Web Audio API)
+└── public/                      # UI de Punto de Venta y Panel Admin
+    ├── index.html               # Pantalla de Caja (Audio sintetizado Web Audio API)
+    └── admin.html               # Dashboard Administrativo y Gestión de Cajeros
 ```
 
 ---
@@ -101,13 +105,18 @@ cd validador-transferencias-pymes
 # 2. Instalar dependencias
 npm install
 
-# 3. Compilar TypeScript
+# 3. Configurar variables de entorno (crear copia desde .env.example)
+cp .env.example .env
+# En Windows PowerShell si no tenés cp:
+# Copy-Item .env.example .env
+
+# 4. Compilar TypeScript
 npm run build
 
-# 4. Iniciar en modo desarrollo
+# 5. Iniciar en modo desarrollo
 npm run dev
 
-# 5. O iniciar en modo producción
+# 6. O iniciar en modo producción
 npm start
 ```
 
@@ -115,7 +124,8 @@ Abrir en el navegador: **[http://localhost:3000](http://localhost:3000)**
 
 > **Credenciales iniciales por defecto:**  
 > Email: `admin@kiosko.com`  
-> Contraseña: `admin123`
+> Contraseña: `admin123`  
+> *(Podés modificarlas a tu gusto en el archivo `.env` antes de iniciar).*
 
 ---
 
@@ -124,7 +134,7 @@ Abrir en el navegador: **[http://localhost:3000](http://localhost:3000)**
 El proyecto cuenta con suites completas de pruebas unitarias y de integración E2E con **Jest** y **Supertest**:
 
 ```bash
-# Ejecutar todas las pruebas (16/16 passing)
+# Ejecutar todas las pruebas (24/24 passing)
 npm test
 
 # Ejecutar solo unitarias
