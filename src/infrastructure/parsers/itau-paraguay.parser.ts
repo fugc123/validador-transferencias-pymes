@@ -6,8 +6,9 @@ export class ItauParaguayParser implements IBankParser {
   public canParse(content: string): boolean {
     if (!content || typeof content !== 'string') return false;
     const lower = content.toLowerCase();
-    return lower.includes('itau') || lower.includes('sipap') || 
-           (lower.includes('acreditada en cuenta') && (lower.includes('detalle de la operaci') || lower.includes('nro. de operaci')));
+    return lower.includes('itau') || lower.includes('itaú') || lower.includes('sipap') || 
+           (lower.includes('acreditada') && (lower.includes('operaci') || lower.includes('transferencia'))) ||
+           (lower.includes('detalle de la operaci') && (lower.includes('debitado de') || lower.includes('monto de la transferencia')));
   }
 
   public parse(content: string): ParsedTransferData | null {
@@ -23,14 +24,14 @@ export class ItauParaguayParser implements IBankParser {
 
     const operationId = getField(/Nro\.?\s*de\s*operaci[oó]n:\s*([A-Za-z0-9]+)/i);
     const operationDate = getField(/Fecha\s*y\s*hora\s*de\s*operaci[oó]n:\s*([\d/]+(?:\s+[\d:]+)?)/i);
-    const payerName = getField(/Cliente\s*Pagador:\s*([^\r\n\t]+)/i);
-    const payerAccount = getField(/Nro\.?\s*de\s*cuenta\s*del\s*pagador:\s*([0-9]+)/i);
-    const payerBank = getField(/Entidad\s*pagadora:\s*([^\r\n\t]+)/i);
-    const rawAmount = getField(/Moneda\s*y\s*Monto:\s*([^\r\n\t]+)/i);
-    const creditAccount = getField(/Nro\.?\s*de\s*cuenta\s*cr[eé]dito:\s*([0-9]+)/i);
-    const receiptNumber = getField(/Nro\.?\s*comprobante:\s*([0-9]+)/i);
-    const concept = getField(/Concepto\s*de\s*la\s*Transferencia:\s*([^\r\n\t]+)/i);
-    const state = getField(/Estado:\s*([^\r\n\t]+)/i);
+    const payerName = getField(/(?:Cliente\s*Pagador|Debitado\s*de|Enviado\s*por):\s*([^\r\n]+)/i);
+    const payerAccount = getField(/(?:Nro\.?\s*de\s*cuenta\s*del\s*pagador|Cuenta\s*D[eé]bito):\s*([0-9]+)/i);
+    const payerBank = getField(/(?:Entidad\s*pagadora|Banco\s*del\s*pagador|Entidad\s*D[eé]bito):\s*([^\r\n]+)/i);
+    const rawAmount = getField(/(?:Moneda\s*y\s*Monto|Monto\s*de\s*la\s*transferencia|Monto|Importe):\s*([^\r\n]+)/i);
+    const creditAccount = getField(/(?:Nro\.?\s*de\s*cuenta\s*cr[eé]dito|Acreditado\s*a\s*la\s*cuenta\s*de):\s*([A-Za-z0-9]+)/i);
+    const receiptNumber = getField(/(?:Nro\.?\s*comprobante|Referencia|Comprobante):\s*([A-Za-z0-9]+)/i);
+    const concept = getField(/(?:Concepto\s*de\s*la\s*Transferencia|Concepto|Mensaje):\s*([^\r\n]+)/i);
+    const state = getField(/Estado:\s*([^\r\n]+)/i);
 
     if (!operationId && !receiptNumber) {
       return null;
@@ -44,7 +45,7 @@ export class ItauParaguayParser implements IBankParser {
       operationDate: operationDate || new Date().toISOString(),
       payerName: payerName ? payerName.replace(/\s+/g, ' ') : 'DESCONOCIDO',
       payerAccount: payerAccount || null,
-      payerBank: payerBank ? payerBank.replace(/\s+/g, ' ') : null,
+      payerBank: payerBank ? payerBank.replace(/\s+/g, ' ') : 'Banco Itaú',
       currency,
       amount,
       creditAccount: creditAccount || null,

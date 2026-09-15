@@ -12,6 +12,7 @@ export class TransferController {
 
   public handleWebhook = async (req: Request, res: Response): Promise<void> => {
     try {
+      console.log('[Webhook Received]', JSON.stringify(req.body, null, 2));
       const result = await this.ingestEmailUseCase.execute(req.body);
       if (result.duplicate) {
         res.status(200).json({ status: 'already_exists', message: 'Transferencia ya registrada previamente' });
@@ -24,6 +25,7 @@ export class TransferController {
         payerName: result.transfer?.payerName
       });
     } catch (err: any) {
+      console.error('[Webhook Error]', err.message, '\n[Text]:', req.body?.text, '\n[HTML]:', req.body?.html);
       res.status(400).json({ error: err.message || 'Error procesando webhook' });
     }
   };

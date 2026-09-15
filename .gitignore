@@ -8,3 +8,6 @@ npm-debug.log*
 
 # Engram AI agent memory
 .engram/
+
+# Local tunnel binary
+cloudflared.exe

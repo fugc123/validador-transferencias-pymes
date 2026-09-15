@@ -31,6 +31,28 @@ Estado: \tTransferencia acreditada en cuenta`;
     expect(result?.creditAccount).toBe('720805917');
   });
 
+  it('debe parsear el formato "Aviso de transferencia recibida" con Debitado de y Monto de la transferencia', () => {
+    const realEmail = `A continuación el detalle de la operación:
+Debitado de: \tALEJANDRA MONSERRAT CHENA GONZALEZ
+Acreditado a la cuenta de: \t720805917
+Banco del beneficiario: \tBanco Itaú S.A
+Monto de la transferencia: \tPYG 26,000
+Referencia: \t7008
+Fecha y hora de operación: \t15/09/2026 09:34:33
+Nro. de operación: \t45601
+Mensaje:`;
+
+    expect(parser.canParse(realEmail)).toBe(true);
+    const result = parser.parse(realEmail);
+    expect(result).not.toBeNull();
+    expect(result?.operationId).toBe('45601');
+    expect(result?.receiptNumber).toBe('7008');
+    expect(result?.payerName).toBe('ALEJANDRA MONSERRAT CHENA GONZALEZ');
+    expect(result?.amount).toBe(26000);
+    expect(result?.currency).toBe('PYG');
+    expect(result?.creditAccount).toBe('720805917');
+  });
+
   it('debe devolver null si el correo no tiene identificadores', () => {
     const result = parser.parse('Hola, este es un mail personal sin datos bancarios');
     expect(result).toBeNull();
