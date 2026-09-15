@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
+import fs from 'fs';
 import { DatabaseSync } from 'node:sqlite';
 import { SqliteTransferRepository } from './infrastructure/database/sqlite-transfer.repository';
 import { SqliteUserRepository, SqliteSettingsRepository } from './infrastructure/database/sqlite-user.repository';
@@ -38,8 +39,14 @@ export function createApp(dbFilePath?: string, jwtSecret?: string) {
   app.use(express.static(path.join(__dirname, '..', 'public')));
 
   // Database Connection
-  const defaultPath = path.join(__dirname, '..', '..', 'data', 'kiosko.db');
+  const defaultPath = path.join(__dirname, '..', 'data', 'kiosko.db');
   const finalPath = dbFilePath || defaultPath;
+  if (finalPath !== ':memory:') {
+    const dir = path.dirname(finalPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  }
   const rawDb = new DatabaseSync(finalPath);
 
   // Repositories & Parsers
