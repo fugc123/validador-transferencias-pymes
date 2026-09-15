@@ -5,12 +5,14 @@ import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { DatabaseSync } from 'node:sqlite';
 import { SqliteTransferRepository } from './infrastructure/database/sqlite-transfer.repository';
-import { SqliteUserRepository } from './infrastructure/database/sqlite-user.repository';
+import { SqliteUserRepository, SqliteSettingsRepository } from './infrastructure/database/sqlite-user.repository';
 import { BankParserFactory } from './infrastructure/parsers/bank-parser.factory';
 import { IngestEmailUseCase, VerifyTransferUseCase, ClaimTransferUseCase } from './application/use-cases/transfer.use-cases';
 import { AuthUseCases } from './application/use-cases/auth.use-cases';
+import { AdminUseCases } from './application/use-cases/admin.use-cases';
 import { TransferController } from './presentation/controllers/transfer.controller';
 import { AuthController } from './presentation/controllers/auth.controller';
+import { AdminController } from './presentation/controllers/admin.controller';
 import { createAuthMiddlewares } from './presentation/middlewares/auth.middleware';
 
 export function createApp(dbFilePath?: string, jwtSecret?: string) {
@@ -43,6 +45,7 @@ export function createApp(dbFilePath?: string, jwtSecret?: string) {
   // Repositories & Parsers
   const transferRepository = new SqliteTransferRepository(finalPath);
   const userRepository = new SqliteUserRepository(rawDb);
+  const settingsRepository = new SqliteSettingsRepository(rawDb);
   const parserFactory = new BankParserFactory();
 
   // Use Cases
@@ -50,13 +53,17 @@ export function createApp(dbFilePath?: string, jwtSecret?: string) {
   const verifyUseCase = new VerifyTransferUseCase(transferRepository);
   const claimUseCase = new ClaimTransferUseCase(transferRepository);
   const authUseCases = new AuthUseCases(userRepository, jwtSecret);
+  const adminUseCases = new AdminUseCases(userRepository, settingsRepository);
 
-  // Seed default admin if table is empty
-  authUseCases.seedDefaultAdmin().catch(console.error);
+  // Seed default admin from env if table is empty
+  const envAdminEmail = process.env.ADMIN_EMAIL || 'admin@kiosko.com';
+  const envAdminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+  authUseCases.seedDefaultAdmin(envAdminEmail, envAdminPassword, 'Administrador Dueño').catch(console.error);
 
   // Controllers & Middlewares
   const transferController = new TransferController(ingestUseCase, verifyUseCase, claimUseCase, transferRepository);
   const authController = new AuthController(authUseCases);
+  const adminController = new AdminController(adminUseCases);
   const { authenticateJwt, requireRole } = createAuthMiddlewares(jwtSecret);
 
   // Webhook Secret Middleware
@@ -85,6 +92,14 @@ export function createApp(dbFilePath?: string, jwtSecret?: string) {
   app.get('/api/auth/me', authenticateJwt, authController.me);
   app.post('/api/auth/register', authenticateJwt, requireRole('ADMIN'), authController.register);
 
+  // Admin Management Routes (Protected by ADMIN Role)
+  app.get('/api/admin/users', authenticateJwt, requireRole('ADMIN'), adminController.getUsers);
+  app.post('/api/admin/users', authenticateJwt, requireRole('ADMIN'), adminController.createUser);
+  app.put('/api/admin/users/:id', authenticateJwt, requireRole('ADMIN'), adminController.updateUser);
+  app.delete('/api/admin/users/:id', authenticateJwt, requireRole('ADMIN'), adminController.deleteUser);
+  app.get('/api/admin/settings', authenticateJwt, requireRole('ADMIN'), adminController.getSettings);
+  app.put('/api/admin/settings', authenticateJwt, requireRole('ADMIN'), adminController.updateSettings);
+
   // Webhook Ingestion Route (Protected by Webhook Secret)
   app.post('/api/webhook/email', webhookAuth, transferController.handleWebhook);
 
@@ -95,5 +110,5 @@ export function createApp(dbFilePath?: string, jwtSecret?: string) {
   // Admin Audit Routes (Protected by Role: ADMIN)
   app.get('/api/transfers/recent', authenticateJwt, requireRole('ADMIN'), transferController.handleRecent);
 
-  return { app, transferRepository, userRepository, authUseCases };
+  return { app, transferRepository, userRepository, settingsRepository, authUseCases, adminUseCases };
 }

@@ -18,16 +18,24 @@ export class BankParserFactory {
     return this.parsers.map(p => p.bankName);
   }
 
-  public parse(content: string): ParsedTransferData | null {
-    for (const parser of this.parsers) {
+  public parse(content: string, activeBankFilter: string = 'ALL'): ParsedTransferData | null {
+    const filteredParsers = this.parsers.filter(p => {
+      if (!activeBankFilter || activeBankFilter === 'ALL') return true;
+      if (activeBankFilter === 'ITAU') return p.bankName.toLowerCase().includes('itau');
+      if (activeBankFilter === 'GNB') return p.bankName.toLowerCase().includes('gnb');
+      if (activeBankFilter === 'UENO') return p.bankName.toLowerCase().includes('ueno');
+      return true;
+    });
+
+    for (const parser of filteredParsers) {
       if (parser.canParse(content)) {
         const result = parser.parse(content);
         if (result) return result;
       }
     }
 
-    // Try all parsers in order as fallback
-    for (const parser of this.parsers) {
+    // Fallback: try filtered parsers directly
+    for (const parser of filteredParsers) {
       const result = parser.parse(content);
       if (result) return result;
     }

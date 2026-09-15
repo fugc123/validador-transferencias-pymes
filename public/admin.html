@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de Administración — Validador PYME</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #10b981;
+      --error: #ef4444;
+      --warning: #f59e0b;
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; padding: 24px; }
+
+    .header {
+      max-width: 1000px;
+      margin: 0 auto 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-title h1 { font-size: 24px; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px; }
+    .header-title p { color: var(--text-muted); font-size: 13px; margin-top: 4px; }
+
+    .header-actions { display: flex; gap: 12px; align-items: center; }
+    .btn-secondary {
+      background: #334155; color: #fff; text-decoration: none; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; border: none; cursor: pointer;
+    }
+    .btn-secondary:hover { background: #475569; }
+
+    .main { max-width: 1000px; margin: 0 auto; }
+
+    .nav-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .tab-btn {
+      background: var(--card-bg); border: 1px solid var(--border); color: var(--text-muted); padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+    }
+    .tab-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+    .card {
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.4); margin-bottom: 24px;
+    }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th { text-align: left; padding: 12px; font-size: 12px; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+    td { padding: 14px 12px; font-size: 14px; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+
+    .badge {
+      display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;
+    }
+    .badge-admin { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+    .badge-cashier { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .badge-claimed { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .badge-pending { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+
+    .btn-action {
+      background: none; border: 1px solid var(--border); color: var(--text); padding: 4px 8px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600;
+    }
+    .btn-action:hover { background: #334155; }
+    .btn-danger { color: #f87171; border-color: rgba(239, 68, 68, 0.3); }
+    .btn-danger:hover { background: rgba(239, 68, 68, 0.2); }
+
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; }
+    input[type="text"], input[type="email"], input[type="password"], select {
+      width: 100%; background: #0f172a; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: #fff; font-size: 14px; outline: none;
+    }
+    input:focus, select:focus { border-color: var(--primary); }
+
+    .btn-primary {
+      background: var(--primary); color: #fff; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer;
+    }
+    .btn-primary:hover { background: var(--primary-hover); }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(15,23,42,0.8); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 100;
+    }
+    .modal-box {
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); width: 100%; max-width: 440px; padding: 24px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header-title">
+      <h1>⚙️ Panel de Administración</h1>
+      <p>Gestión de personal, entidades bancarias y auditoría de cobros</p>
+    </div>
+    <div class="header-actions">
+      <a href="/" class="btn-secondary">🏪 Ir a la Caja</a>
+      <button onclick="handleLogout()" class="btn-secondary btn-danger">Cerrar Sesión</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="switchTab('tabUsers')">👥 Cajeros y Usuarios</button>
+      <button class="tab-btn" onclick="switchTab('tabSettings')">🏦 Configuración Bancaria</button>
+      <button class="tab-btn" onclick="switchTab('tabAudit')">📊 Auditoría de Transferencias</button>
+    </div>
+
+    <!-- TAB 1: USERS -->
+    <div id="tabUsers" class="tab-content">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h2 style="font-size: 18px; font-weight: 800;">Operadores de Caja Registrados</h2>
+          <button class="btn-primary" onclick="openCreateUserModal()">+ Nuevo Cajero</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Email / Usuario</th>
+              <th>Rol</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="usersTableBody">
+            <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Cargando usuarios...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 2: SETTINGS -->
+    <div id="tabSettings" class="tab-content" style="display: none;">
+      <div class="card" style="max-width: 600px;">
+        <h2 style="font-size: 18px; font-weight: 800; margin-bottom: 8px;">Entidad Bancaria Receptora</h2>
+        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">
+          Seleccione qué formato de banco está habilitado para recibir y conciliar notificaciones de transferencia.
+        </p>
+
+        <form onsubmit="handleSaveSettings(event)">
+          <div class="form-group">
+            <label for="selectBank">Banco Activo para Notificaciones</label>
+            <select id="selectBank">
+              <option value="ALL">Todos los Bancos (Itaú, Banco GNB, UENO Bank)</option>
+              <option value="ITAU">Solo Banco Itaú Paraguay</option>
+              <option value="GNB">Solo Banco GNB Paraguay</option>
+              <option value="UENO">Solo UENO Bank Paraguay</option>
+            </select>
+          </div>
+          <button type="submit" class="btn-primary">Guardar Configuración</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- TAB 3: AUDIT -->
+    <div id="tabAudit" class="tab-content" style="display: none;">
+      <div class="card">
+        <h2 style="font-size: 18px; font-weight: 800; margin-bottom: 8px;">Auditoría de Transferencias Recientes</h2>
+        <p style="color: var(--text-muted); font-size: 13px;">Últimas transferencias procesadas en el sistema</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Comprobante</th>
+              <th>Fecha/Hora</th>
+              <th>Cliente Pagador</th>
+              <th>Banco</th>
+              <th>Monto</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="auditTableBody">
+            <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Cargando auditoría...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Modal (Create / Edit) -->
+  <div id="userModal" class="modal-overlay" style="display: none;">
+    <div class="modal-box">
+      <h3 id="modalTitle" style="font-size: 18px; font-weight: 800; margin-bottom: 16px;">Nuevo Usuario</h3>
+      <form id="userForm" onsubmit="handleSaveUser(event)">
+        <input type="hidden" id="userIdInput">
+        <div class="form-group">
+          <label for="userName">Nombre Completo</label>
+          <input type="text" id="userName" required placeholder="Ej: María Benítez">
+        </div>
+        <div class="form-group">
+          <label for="userEmail">Correo Electrónico</label>
+          <input type="email" id="userEmail" required placeholder="cajero@kiosko.com">
+        </div>
+        <div class="form-group">
+          <label for="userPassword">Contraseña</label>
+          <input type="password" id="userPassword" placeholder="Mínimo 6 caracteres">
+        </div>
+        <div class="form-group">
+          <label for="userRole">Rol</label>
+          <select id="userRole">
+            <option value="CASHIER">Cajero / Operador de Caja</option>
+            <option value="ADMIN">Administrador (Dueño)</option>
+          </select>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px;">
+          <button type="button" class="btn-secondary" onclick="closeUserModal()">Cancelar</button>
+          <button type="submit" class="btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('kiosko_token');
+    if (!token) {
+      window.location.href = '/';
+    }
+
+    async function authFetch(url, options = {}) {
+      options.headers = {
+        ...(options.headers || {}),
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      };
+      const res = await fetch(url, options);
+      if (res.status === 401 || res.status === 403) {
+        alert('Acceso restringido: Se requieren permisos de Administrador');
+        window.location.href = '/';
+      }
+      return res;
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).style.display = 'block';
+      event.target.classList.add('active');
+
+      if (tabId === 'tabUsers') loadUsers();
+      if (tabId === 'tabSettings') loadSettings();
+      if (tabId === 'tabAudit') loadAudit();
+    }
+
+    async function loadUsers() {
+      const res = await authFetch('/api/admin/users');
+      const data = await res.json();
+      const tbody = document.getElementById('usersTableBody');
+      if (!data.users || data.users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No hay usuarios registrados.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = data.users.map(u => `
+        <tr>
+          <td>#${u.id}</td>
+          <td><strong>${u.name}</strong></td>
+          <td>${u.email}</td>
+          <td><span class="badge badge-${u.role.toLowerCase()}">${u.role}</span></td>
+          <td>
+            <button class="btn-action" onclick="openEditUserModal(${JSON.stringify(u).replace(/"/g, '&quot;')})">Editar</button>
+            <button class="btn-action btn-danger" onclick="handleDeleteUser(${u.id})">Eliminar</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadSettings() {
+      const res = await authFetch('/api/admin/settings');
+      const data = await res.json();
+      if (data.settings && data.settings.active_bank) {
+        document.getElementById('selectBank').value = data.settings.active_bank;
+      }
+    }
+
+    async function handleSaveSettings(e) {
+      e.preventDefault();
+      const value = document.getElementById('selectBank').value;
+      const res = await authFetch('/api/admin/settings', {
+        method: 'PUT',
+        body: JSON.stringify({ key: 'active_bank', value })
+      });
+      if (res.ok) {
+        alert('Configuración guardada exitosamente');
+      }
+    }
+
+    async function loadAudit() {
+      const res = await authFetch('/api/transfers/recent?limit=25');
+      const data = await res.json();
+      const tbody = document.getElementById('auditTableBody');
+      if (!data.transfers || data.transfers.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No hay transferencias registradas.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = data.transfers.map(t => `
+        <tr>
+          <td>#${t.receipt_number || t.operation_id}</td>
+          <td>${t.operation_date}</td>
+          <td><strong>${t.payer_name}</strong></td>
+          <td>${t.payer_bank || 'SIPAP'}</td>
+          <td><strong>Gs. ${new Intl.NumberFormat('es-PY').format(t.amount)}</strong></td>
+          <td><span class="badge badge-${t.status === 'claimed' ? 'claimed' : 'pending'}">${t.status === 'claimed' ? 'COBRADA' : 'PENDIENTE'}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    function openCreateUserModal() {
+      document.getElementById('modalTitle').textContent = 'Nuevo Cajero / Operador';
+      document.getElementById('userIdInput').value = '';
+      document.getElementById('userForm').reset();
+      document.getElementById('userPassword').required = true;
+      document.getElementById('userModal').style.display = 'flex';
+    }
+
+    function openEditUserModal(user) {
+      document.getElementById('modalTitle').textContent = 'Editar Usuario #' + user.id;
+      document.getElementById('userIdInput').value = user.id;
+      document.getElementById('userName').value = user.name;
+      document.getElementById('userEmail').value = user.email;
+      document.getElementById('userRole').value = user.role;
+      document.getElementById('userPassword').value = '';
+      document.getElementById('userPassword').required = false;
+      document.getElementById('userModal').style.display = 'flex';
+    }
+
+    function closeUserModal() {
+      document.getElementById('userModal').style.display = 'none';
+    }
+
+    async function handleSaveUser(e) {
+      e.preventDefault();
+      const id = document.getElementById('userIdInput').value;
+      const name = document.getElementById('userName').value;
+      const email = document.getElementById('userEmail').value;
+      const password = document.getElementById('userPassword').value;
+      const role = document.getElementById('userRole').value;
+
+      const payload = { name, email, role };
+      if (password) payload.password = password;
+
+      const url = id ? `/api/admin/users/${id}` : '/api/admin/users';
+      const method = id ? 'PUT' : 'POST';
+
+      const res = await authFetch(url, {
+        method,
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        closeUserModal();
+        loadUsers();
+      } else {
+        alert(data.error || 'Error guardando usuario');
+      }
+    }
+
+    async function handleDeleteUser(id) {
+      if (!confirm('¿Estás seguro de eliminar este usuario? Esta acción no se puede deshacer.')) return;
+      const res = await authFetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (res.ok) {
+        loadUsers();
+      } else {
+        alert(data.error || 'No se pudo eliminar el usuario');
+      }
+    }
+
+    function handleLogout() {
+      localStorage.removeItem('kiosko_token');
+      window.location.href = '/';
+    }
+
+    // Initial load
+    loadUsers();
+  </script>
+</body>
+</html>
