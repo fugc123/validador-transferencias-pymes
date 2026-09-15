@@ -5,3 +5,6 @@ data/*.db-journal
 .env
 npm-debug.log*
 .DS_Store
+
+# Engram AI agent memory
+.engram/
