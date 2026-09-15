@@ -3,12 +3,17 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
+import { DatabaseSync } from 'node:sqlite';
 import { SqliteTransferRepository } from './infrastructure/database/sqlite-transfer.repository';
+import { SqliteUserRepository } from './infrastructure/database/sqlite-user.repository';
 import { BankParserFactory } from './infrastructure/parsers/bank-parser.factory';
 import { IngestEmailUseCase, VerifyTransferUseCase, ClaimTransferUseCase } from './application/use-cases/transfer.use-cases';
+import { AuthUseCases } from './application/use-cases/auth.use-cases';
 import { TransferController } from './presentation/controllers/transfer.controller';
+import { AuthController } from './presentation/controllers/auth.controller';
+import { createAuthMiddlewares } from './presentation/middlewares/auth.middleware';
 
-export function createApp(dbPath?: string) {
+export function createApp(dbFilePath?: string, jwtSecret?: string) {
   const app = express();
 
   // Security Hardening
@@ -30,15 +35,29 @@ export function createApp(dbPath?: string) {
   app.use(express.urlencoded({ extended: true, limit: '5mb' }));
   app.use(express.static(path.join(__dirname, '..', 'public')));
 
-  // Dependency Injection
-  const repository = new SqliteTransferRepository(dbPath);
+  // Database Connection
+  const defaultPath = path.join(__dirname, '..', '..', 'data', 'kiosko.db');
+  const finalPath = dbFilePath || defaultPath;
+  const rawDb = new DatabaseSync(finalPath);
+
+  // Repositories & Parsers
+  const transferRepository = new SqliteTransferRepository(finalPath);
+  const userRepository = new SqliteUserRepository(rawDb);
   const parserFactory = new BankParserFactory();
 
-  const ingestUseCase = new IngestEmailUseCase(repository, parserFactory);
-  const verifyUseCase = new VerifyTransferUseCase(repository);
-  const claimUseCase = new ClaimTransferUseCase(repository);
+  // Use Cases
+  const ingestUseCase = new IngestEmailUseCase(transferRepository, parserFactory);
+  const verifyUseCase = new VerifyTransferUseCase(transferRepository);
+  const claimUseCase = new ClaimTransferUseCase(transferRepository);
+  const authUseCases = new AuthUseCases(userRepository, jwtSecret);
 
-  const controller = new TransferController(ingestUseCase, verifyUseCase, claimUseCase, repository);
+  // Seed default admin if table is empty
+  authUseCases.seedDefaultAdmin().catch(console.error);
+
+  // Controllers & Middlewares
+  const transferController = new TransferController(ingestUseCase, verifyUseCase, claimUseCase, transferRepository);
+  const authController = new AuthController(authUseCases);
+  const { authenticateJwt, requireRole } = createAuthMiddlewares(jwtSecret);
 
   // Webhook Secret Middleware
   const webhookAuth = (req: express.Request, res: express.Response, next: express.NextFunction): void => {
@@ -56,15 +75,25 @@ export function createApp(dbPath?: string) {
     next();
   };
 
-  // API Routes
+  // Public / Health Routes
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', service: 'validador-transferencias-pymes', time: new Date().toISOString() });
   });
 
-  app.post('/api/webhook/email', webhookAuth, controller.handleWebhook);
-  app.post('/api/transfers/verify', controller.handleVerify);
-  app.post('/api/transfers/claim', controller.handleClaim);
-  app.get('/api/transfers/recent', controller.handleRecent);
+  // Auth Routes
+  app.post('/api/auth/login', authController.login);
+  app.get('/api/auth/me', authenticateJwt, authController.me);
+  app.post('/api/auth/register', authenticateJwt, requireRole('ADMIN'), authController.register);
 
-  return { app, repository };
+  // Webhook Ingestion Route (Protected by Webhook Secret)
+  app.post('/api/webhook/email', webhookAuth, transferController.handleWebhook);
+
+  // Kiosk Cashier Routes (Protected by JWT: Cashier or Admin)
+  app.post('/api/transfers/verify', authenticateJwt, transferController.handleVerify);
+  app.post('/api/transfers/claim', authenticateJwt, transferController.handleClaim);
+
+  // Admin Audit Routes (Protected by Role: ADMIN)
+  app.get('/api/transfers/recent', authenticateJwt, requireRole('ADMIN'), transferController.handleRecent);
+
+  return { app, transferRepository, userRepository, authUseCases };
 }

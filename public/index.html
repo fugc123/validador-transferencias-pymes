@@ -293,6 +293,15 @@
 
   <div class="container">
     <div class="header">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div class="badge-live">
+          <span class="dot"></span> SISTEMA CONECTADO CON ITAÚ
+        </div>
+        <div id="userBadge" style="display: none; align-items: center; gap: 8px;">
+          <span id="userNameText" style="font-size: 12px; font-weight: 700; color: #38bdf8;"></span>
+          <button onclick="handleLogout()" style="background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.4); color: #fca5a5; font-size: 11px; font-weight: 700; border-radius: 6px; padding: 3px 8px; cursor: pointer;">Cerrar</button>
+        </div>
+      </div>
       <div class="badge-live">
         <span class="dot"></span> SISTEMA CONECTADO CON ITAÚ
       </div>
@@ -336,6 +345,33 @@
       </form>
 
       <!-- Results Area -->
+      <div id="resultContainer" class="result-container">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.85); backdrop-filter: blur(8px); z-index: 100; align-items: center; justify-content: center; padding: 16px;">
+      <div class="card" style="width: 100%; max-width: 400px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7); animation: slideDown 0.3s ease;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h2 style="font-size: 22px; font-weight: 800; color: #fff;">🔐 Acceso a Caja</h2>
+          <p style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">Inicie sesión con su cuenta de cajero o administrador</p>
+        </div>
+        <form id="loginForm" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label for="loginEmail">Email / Usuario</label>
+            <input type="text" id="loginEmail" value="admin@kiosko.com" required style="font-size: 15px; font-weight: 600;">
+          </div>
+          <div class="form-group">
+            <label for="loginPassword">Contraseña</label>
+            <input type="password" id="loginPassword" value="admin123" required style="width: 100%; background: #0f172a; border: 2px solid var(--border); border-radius: 12px; padding: 14px 16px; font-size: 15px; font-weight: 600; color: #fff; outline: none;">
+          </div>
+          <div id="loginError" style="display: none; color: #f87171; font-size: 13px; font-weight: 700; margin-bottom: 14px; text-align: center;"></div>
+          <button type="submit" id="btnLoginSubmit" class="btn btn-verify" style="margin-top: 0;">Ingresar a la Caja</button>
+        </form>
+      </div>
+    </div>
+
       <div id="resultContainer" class="result-container">
         <!-- Rendered dynamically -->
       </div>
@@ -428,7 +464,7 @@
       try {
         const res = await fetch('/api/transfers/verify', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (authToken || '') },
           body: JSON.stringify({ amount: rawAmount, name: name })
         });
 
@@ -522,7 +558,7 @@
       try {
         const res = await fetch('/api/transfers/claim', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (authToken || '') },
           body: JSON.stringify({ id })
         });
         const data = await res.json();
@@ -547,6 +583,87 @@
         alert('Error confirmando cobro');
       }
     }
+  
+    // Authentication Token Management
+    let authToken = localStorage.getItem('kiosko_token') || null;
+
+    async function checkAuth() {
+      const modal = document.getElementById('loginModal');
+      const userBadge = document.getElementById('userBadge');
+      const userNameText = document.getElementById('userNameText');
+
+      if (!authToken) {
+        modal.style.display = 'flex';
+        userBadge.style.display = 'none';
+        return false;
+      }
+
+      try {
+        const res = await fetch('/api/auth/me', {
+          headers: { 'Authorization': 'Bearer ' + authToken }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          modal.style.display = 'none';
+          userBadge.style.display = 'flex';
+          userNameText.textContent = data.user.name + ' (' + data.user.role + ')';
+          return true;
+        } else {
+          localStorage.removeItem('kiosko_token');
+          authToken = null;
+          modal.style.display = 'flex';
+          userBadge.style.display = 'none';
+          return false;
+        }
+      } catch(e) {
+        return false;
+      }
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      const errorDiv = document.getElementById('loginError');
+      const submitBtn = document.getElementById('btnLoginSubmit');
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Autenticando...';
+      errorDiv.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (res.ok && data.token) {
+          authToken = data.token;
+          localStorage.setItem('kiosko_token', authToken);
+          await checkAuth();
+        } else {
+          errorDiv.textContent = data.error || 'Credenciales inválidas';
+          errorDiv.style.display = 'block';
+        }
+      } catch(err) {
+        errorDiv.textContent = 'Error de conexión con el servidor';
+        errorDiv.style.display = 'block';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Ingresar a la Caja';
+      }
+    }
+
+    function handleLogout() {
+      localStorage.removeItem('kiosko_token');
+      authToken = null;
+      checkAuth();
+    }
+
+    // Call on load
+    checkAuth();
+
   </script>
 </body>
 </html>

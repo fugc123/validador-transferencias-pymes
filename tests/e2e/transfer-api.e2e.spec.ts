@@ -1,12 +1,19 @@
 import request from 'supertest';
 import { createApp } from '../../src/app';
 
-describe('Transfer API E2E Flow', () => {
+describe('Transfer API E2E Flow with Auth', () => {
   let app: any;
+  let token: string;
 
-  beforeAll(() => {
-    const instance = createApp(':memory:');
+  beforeAll(async () => {
+    const instance = createApp(':memory:', 'test-secret-e2e');
     app = instance.app;
+
+    await instance.authUseCases.seedDefaultAdmin('admin@e2e.com', 'admin123', 'Admin E2E');
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'admin@e2e.com', password: 'admin123' });
+    token = loginRes.body.token;
   });
 
   const sampleEmail = `A continuación el detalle de la operación:
@@ -43,6 +50,7 @@ Estado: \tTransferencia acreditada en cuenta`;
   it('3. POST /api/transfers/verify - debe encontrar transferencia pendiente por Monto y Apellido', async () => {
     const res = await request(app)
       .post('/api/transfers/verify')
+      .set('Authorization', `Bearer ${token}`)
       .send({ amount: '45000', name: 'gimenez' });
 
     expect(res.status).toBe(200);
@@ -55,12 +63,14 @@ Estado: \tTransferencia acreditada en cuenta`;
   it('4. POST /api/transfers/claim - debe cobrar y bloquear la transferencia', async () => {
     const verifyRes = await request(app)
       .post('/api/transfers/verify')
+      .set('Authorization', `Bearer ${token}`)
       .send({ amount: '45000', name: 'mia' });
 
     const transferId = verifyRes.body.transfer.id;
 
     const claimRes = await request(app)
       .post('/api/transfers/claim')
+      .set('Authorization', `Bearer ${token}`)
       .send({ id: transferId });
 
     expect(claimRes.status).toBe(200);
@@ -70,6 +80,7 @@ Estado: \tTransferencia acreditada en cuenta`;
   it('5. POST /api/transfers/verify - debe detectar intento de reuso y alertar already_claimed (Anti-Replay)', async () => {
     const res = await request(app)
       .post('/api/transfers/verify')
+      .set('Authorization', `Bearer ${token}`)
       .send({ amount: '45000', name: 'gimenez' });
 
     expect(res.status).toBe(200);

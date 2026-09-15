@@ -4,10 +4,10 @@ dotenv.config();
 import { createApp } from './app';
 
 const PORT = process.env.PORT || 3000;
-const { app, repository } = createApp();
+const { app, transferRepository } = createApp();
 
 // Auto-purge records older than 30 days
-repository.purgeOlderThan(30).then(count => {
+transferRepository.purgeOlderThan(30).then((count: number) => {
   if (count > 0) {
     console.log(`[Purge] Limpieza automática: ${count} transferencias antiguas eliminadas.`);
   }
