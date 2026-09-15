@@ -1,4 +1,4 @@
-# 🏪 Validador de Transferencias para PYMEs (Itaú / SIPAP Paraguay)
+# 🏪 Validador de Transferencias para PYMEs (Itaú, GNB, UENO / SIPAP Paraguay)
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-24+-green.svg)](https://nodejs.org/)
