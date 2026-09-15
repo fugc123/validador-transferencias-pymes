@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Caja Kiosko — Validador de Transferencias</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #10b981;
+      --success-dark: #065f46;
+      --error: #ef4444;
+      --error-dark: #7f1d1d;
+      --warning: #f59e0b;
+      --radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .header h1 {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .header p {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    .badge-live {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .badge-live .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.2); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .input-wrapper .prefix {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-weight: 700;
+      color: var(--text-muted);
+      font-size: 18px;
+      pointer-events: none;
+    }
+
+    input[type="text"], input[type="tel"] {
+      width: 100%;
+      background: #0f172a;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .input-amount {
+      padding-left: 60px !important;
+      font-size: 24px !important;
+      letter-spacing: 1px;
+    }
+
+    input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 12px;
+      font-size: 17px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-verify {
+      background: var(--primary);
+      color: #fff;
+      margin-top: 8px;
+    }
+
+    .btn-verify:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-verify:active {
+      transform: translateY(0);
+    }
+
+    /* Result boxes */
+    .result-container {
+      margin-top: 20px;
+      display: none;
+    }
+
+    .result-card {
+      border-radius: 14px;
+      padding: 20px;
+      text-align: center;
+      animation: slideDown 0.25s ease;
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-success {
+      background: rgba(16, 185, 129, 0.1);
+      border: 2px solid var(--success);
+      color: #ecfdf5;
+    }
+
+    .result-claimed {
+      background: rgba(239, 68, 68, 0.1);
+      border: 2px solid var(--error);
+      color: #fef2f2;
+    }
+
+    .result-notfound {
+      background: rgba(245, 158, 11, 0.1);
+      border: 2px solid var(--warning);
+      color: #fffbeb;
+    }
+
+    .result-title {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .result-detail {
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 16px;
+      text-align: left;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+
+    .detail-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .detail-label {
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .detail-val {
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .amount-highlight {
+      font-size: 26px;
+      font-weight: 800;
+      color: #34d399;
+      text-align: center;
+      margin: 8px 0;
+    }
+
+    .btn-claim {
+      background: var(--success);
+      color: #fff;
+      font-size: 18px;
+    }
+
+    .btn-claim:hover {
+      background: #059669;
+    }
+
+    .footer-note {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 18px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <div class="badge-live">
+        <span class="dot"></span> SISTEMA CONECTADO CON ITAÚ
+      </div>
+      <h1>Validador de Caja</h1>
+      <p>Verificación instantánea de transferencias bancarias</p>
+    </div>
+
+    <div class="card">
+      <form id="verifyForm" onsubmit="handleVerify(event)">
+        
+        <div class="form-group">
+          <label for="amountInput">Monto a Cobrar</label>
+          <div class="input-wrapper">
+            <span class="prefix">Gs.</span>
+            <input 
+              type="tel" 
+              id="amountInput" 
+              class="input-amount" 
+              placeholder="0" 
+              autocomplete="off" 
+              required
+              autofocus
+            >
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="nameInput">Nombre y/o Apellido del Cliente</label>
+          <input 
+            type="text" 
+            id="nameInput" 
+            placeholder="Ej: Mia Gimenez" 
+            autocomplete="off" 
+            required
+          >
+        </div>
+
+        <button type="submit" id="btnSubmit" class="btn btn-verify">
+          <span>🔍</span> Verificar Transferencia
+        </button>
+      </form>
+
+      <!-- Results Area -->
+      <div id="resultContainer" class="result-container">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <p class="footer-note">
+      🔒 Las transferencias personales permanecen 100% privadas. Cada comprobante solo se puede cobrar una única vez.
+    </p>
+  </div>
+
+  <script>
+    // Audio synthesizer using Web Audio API (Zero external mp3 dependencies)
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSuccessChime() {
+      try {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const now = audioCtx.currentTime;
+        
+        // Two-tone cheerful bell (E5 -> G5)
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(659.25, now); // E5
+        osc1.frequency.setValueAtTime(783.99, now + 0.12); // G5
+
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+        osc1.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc1.start(now);
+        osc1.stop(now + 0.6);
+      } catch(e) {
+        console.warn('Audio not allowed yet:', e);
+      }
+    }
+
+    function playErrorTone() {
+      try {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(160, now);
+        osc.frequency.setValueAtTime(120, now + 0.15);
+
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.35);
+      } catch(e) {}
+    }
+
+    // Format thousands as user types
+    const amountInput = document.getElementById('amountInput');
+    amountInput.addEventListener('input', (e) => {
+      let val = e.target.value.replace(/[^0-9]/g, '');
+      if (val) {
+        e.target.value = new Intl.NumberFormat('es-PY').format(val);
+      } else {
+        e.target.value = '';
+      }
+    });
+
+    let currentMatchTransferId = null;
+
+    async function handleVerify(e) {
+      e.preventDefault();
+      const rawAmount = amountInput.value.replace(/[^0-9]/g, '');
+      const name = document.getElementById('nameInput').value.trim();
+      const container = document.getElementById('resultContainer');
+      const submitBtn = document.getElementById('btnSubmit');
+
+      if (!rawAmount || !name) return;
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = 'Buscando en Itaú...';
+      container.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/transfers/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount: rawAmount, name: name })
+        });
+
+        const data = await res.json();
+        container.style.display = 'block';
+
+        if (data.found && data.status === 'pending') {
+          currentMatchTransferId = data.transfer.id;
+          playSuccessChime();
+          container.innerHTML = `
+            <div class="result-card result-success">
+              <div class="result-title">✅ ¡Transferencia Encontrada!</div>
+              <div class="amount-highlight">Gs. ${new Intl.NumberFormat('es-PY').format(data.transfer.amount)}</div>
+              
+              <div class="result-detail">
+                <div class="detail-row">
+                  <span class="detail-label">Cliente:</span>
+                  <span class="detail-val">${data.transfer.payer_name}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Banco Emisor:</span>
+                  <span class="detail-val">${data.transfer.payer_bank || 'SIPAP'}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Comprobante:</span>
+                  <span class="detail-val">#${data.transfer.receipt_number || data.transfer.operation_id}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Fecha/Hora:</span>
+                  <span class="detail-val">${data.transfer.operation_date}</span>
+                </div>
+              </div>
+
+              <button type="button" class="btn btn-claim" onclick="handleClaim(${data.transfer.id})">
+                💰 Confirmar y Cobrar
+              </button>
+            </div>
+          `;
+        } else if (data.found && data.status === 'already_claimed') {
+          playErrorTone();
+          container.innerHTML = `
+            <div class="result-card result-claimed">
+              <div class="result-title">⚠️ ¡COMPROBANTE YA COBRADO!</div>
+              <p style="margin-bottom: 12px; font-size: 14px;">
+                Esta transferencia de <strong>Gs. ${new Intl.NumberFormat('es-PY').format(data.transfer.amount)}</strong> a nombre de <strong>${data.transfer.payer_name}</strong> ya fue utilizada.
+              </p>
+              <div class="result-detail">
+                <div class="detail-row">
+                  <span class="detail-label">Comprobante:</span>
+                  <span class="detail-val">#${data.transfer.receipt_number || data.transfer.operation_id}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Hora del cobro:</span>
+                  <span class="detail-val">${data.claimed_at || 'Registrado'}</span>
+                </div>
+              </div>
+              <p style="font-size: 13px; font-weight: 700; color: #fca5a5;">
+                ⛔ NO entregar mercadería. El comprobante fue duplicado.
+              </p>
+            </div>
+          `;
+        } else {
+          container.innerHTML = `
+            <div class="result-card result-notfound">
+              <div class="result-title">⏳ Aún no acreditada</div>
+              <p style="font-size: 14px; margin-bottom: 8px;">
+                No encontramos transferencia de <strong>Gs. ${new Intl.NumberFormat('es-PY').format(rawAmount)}</strong> para <strong>${name}</strong> en los últimos 45 minutos.
+              </p>
+              <p style="font-size: 12px; color: #fde68a;">
+                Si el cliente acaba de transferir, aguardar 30 segundos y volver a presionar "Verificar".
+              </p>
+            </div>
+          `;
+        }
+      } catch (err) {
+        container.style.display = 'block';
+        container.innerHTML = `
+          <div class="result-card result-claimed">
+            <div class="result-title">❌ Error de conexión</div>
+            <p>No se pudo consultar el servidor. Verifique si el servicio está activo.</p>
+          </div>
+        `;
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span>🔍</span> Verificar Transferencia';
+      }
+    }
+
+    async function handleClaim(id) {
+      const container = document.getElementById('resultContainer');
+      try {
+        const res = await fetch('/api/transfers/claim', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id })
+        });
+        const data = await res.json();
+        if (data.success) {
+          playSuccessChime();
+          container.innerHTML = `
+            <div class="result-card result-success" style="background: #065f46; border-color: #34d399;">
+              <div class="result-title" style="font-size: 22px;">🎉 ¡COBRO CONFIRMADO!</div>
+              <p style="font-size: 15px; margin: 8px 0;">La transferencia fue marcada como cobrada y bloqueada para futuros usos.</p>
+              <p style="font-size: 12px; opacity: 0.8;">La pantalla se limpiará en 3 segundos...</p>
+            </div>
+          `;
+          setTimeout(() => {
+            document.getElementById('verifyForm').reset();
+            container.style.display = 'none';
+            amountInput.focus();
+          }, 3500);
+        } else {
+          alert(data.message || 'No se pudo confirmar el cobro');
+        }
+      } catch(e) {
+        alert('Error confirmando cobro');
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+{
+  "name": "validador-transferencias-pymes",
+  "version": "1.0.0",
+  "description": "Sistema open-source de validaci\u00f3n de transferencias bancarias en tiempo real para cajas y PYMEs (Ita\u00fa / SIPAP Paraguay) con Zero-Knowledge y protecci\u00f3n antifraude.",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "ts-node src/server.ts",
+    "test": "jest --runInBand --detectOpenHandles",
+    "test:unit": "jest tests/unit --runInBand",
+    "test:e2e": "jest tests/e2e --runInBand"
+  },
+  "keywords": [
+    "paraguay",
+    "sipap",
+    "itau",
+    "fintech",
+    "pyme",
+    "kiosk",
+    "pos",
+    "typescript",
+    "clean-architecture",
+    "sqlite"
+  ],
+  "author": "fugc123",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "helmet": "^8.0.0",
+    "express-rate-limit": "^7.5.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.13.5",
+    "@types/supertest": "^6.0.2",
+    "jest": "^29.7.0",
+    "rimraf": "^6.0.1",
+    "supertest": "^7.0.0",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  }
+}
