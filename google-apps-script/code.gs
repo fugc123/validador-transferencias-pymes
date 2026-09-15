@@ -28,9 +28,9 @@ function procesarCorreosItau() {
     label = GmailApp.createLabel(LABEL_NAME);
   }
 
-  // Buscar correos no leídos de Itaú con acreditación de transferencia
+  // Buscar correos de transferencias bancarias (Itaú, Banco GNB, UENO Bank)
   // Excluye los que ya tienen la etiqueta Procesado_Kiosko
-  const searchQuery = 'from:(itau.com.py OR itau) "acreditada en cuenta" -label:' + LABEL_NAME;
+  const searchQuery = '("acreditada en cuenta" OR "Transferencia Interbancaria Recibida" OR "Recibiste una transferencia") -label:' + LABEL_NAME;
   const threads = GmailApp.search(searchQuery, 0, 10);
 
   for (let i = 0; i < threads.length; i++) {
