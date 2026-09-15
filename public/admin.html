@@ -305,16 +305,22 @@
         return;
       }
 
-      tbody.innerHTML = data.transfers.map(t => `
+      tbody.innerHTML = data.transfers.map(t => {
+        const receipt = t.receiptNumber || t.receipt_number || t.operationId || t.operation_id || 'S/N';
+        const date = t.operationDate || t.operation_date || '-';
+        const payer = t.payerName || t.payer_name || 'Desconocido';
+        const bank = t.payerBank || t.payer_bank || 'SIPAP';
+        return `
         <tr>
-          <td>#${t.receipt_number || t.operation_id}</td>
-          <td>${t.operation_date}</td>
-          <td><strong>${t.payer_name}</strong></td>
-          <td>${t.payer_bank || 'SIPAP'}</td>
+          <td>#${receipt}</td>
+          <td>${date}</td>
+          <td><strong>${payer}</strong></td>
+          <td>${bank}</td>
           <td><strong>Gs. ${new Intl.NumberFormat('es-PY').format(t.amount)}</strong></td>
           <td><span class="badge badge-${t.status === 'claimed' ? 'claimed' : 'pending'}">${t.status === 'claimed' ? 'COBRADA' : 'PENDIENTE'}</span></td>
         </tr>
-      `).join('');
+        `;
+      }).join('');
     }
 
     function openCreateUserModal() {

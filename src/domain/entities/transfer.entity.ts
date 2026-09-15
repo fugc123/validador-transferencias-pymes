@@ -79,4 +79,34 @@ export class Transfer {
     this._status = 'claimed';
     this._claimedAt = timestamp || new Date().toISOString();
   }
+
+  public toJSON() {
+    return {
+      id: this.id,
+      operationId: this.operationId,
+      receiptNumber: this.receiptNumber,
+      operationDate: this.operationDate,
+      payerName: this.payerName,
+      payerAccount: this.payerAccount,
+      payerBank: this.payerBank,
+      currency: this.currency,
+      amount: this.amount,
+      creditAccount: this.creditAccount,
+      concept: this.concept,
+      rawBody: this.rawBody,
+      status: this.status,
+      claimedAt: this.claimedAt,
+      createdAt: this.createdAt,
+      // Compatibility aliases (snake_case)
+      operation_id: this.operationId,
+      receipt_number: this.receiptNumber,
+      operation_date: this.operationDate,
+      payer_name: this.payerName,
+      payer_account: this.payerAccount,
+      payer_bank: this.payerBank,
+      credit_account: this.creditAccount,
+      claimed_at: this.claimedAt,
+      created_at: this.createdAt
+    };
+  }
 }

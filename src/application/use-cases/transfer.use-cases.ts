@@ -69,16 +69,7 @@ export class VerifyTransferUseCase {
       return {
         found: true,
         status: 'pending',
-        transfer: {
-          id: pending.id,
-          operationId: pending.operationId,
-          receiptNumber: pending.receiptNumber,
-          operationDate: pending.operationDate,
-          payerName: pending.payerName,
-          payerBank: pending.payerBank,
-          amount: pending.amount,
-          currency: pending.currency
-        }
+        transfer: pending.toJSON()
       };
     }
 
@@ -87,16 +78,7 @@ export class VerifyTransferUseCase {
       found: true,
       status: 'already_claimed',
       message: 'Esta transferencia ya fue cobrada previamente',
-      transfer: {
-        id: claimed.id,
-        operationId: claimed.operationId,
-        receiptNumber: claimed.receiptNumber,
-        operationDate: claimed.operationDate,
-        payerName: claimed.payerName,
-        payerBank: claimed.payerBank,
-        amount: claimed.amount,
-        currency: claimed.currency
-      },
+      transfer: claimed.toJSON(),
       claimedAt: claimed.claimedAt
     };
   }

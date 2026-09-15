@@ -25,6 +25,13 @@ export interface VerifyResult {
     payerBank: string | null;
     amount: number;
     currency: string;
+    // snake_case compatibility aliases
+    operation_id?: string;
+    receipt_number?: string;
+    operation_date?: string;
+    payer_name?: string;
+    payer_bank?: string | null;
+    [key: string]: any;
   };
   claimedAt?: string | null;
 }

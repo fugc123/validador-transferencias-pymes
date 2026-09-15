@@ -475,51 +475,62 @@
         if (data.found && data.status === 'pending') {
           currentMatchTransferId = data.transfer.id;
           playSuccessChime();
+          const t = data.transfer;
+          const payer = t.payerName || t.payer_name || 'Desconocido';
+          const bank = t.payerBank || t.payer_bank || 'SIPAP';
+          const receipt = t.receiptNumber || t.receipt_number || t.operationId || t.operation_id || 'S/N';
+          const date = t.operationDate || t.operation_date || 'Reciente';
+
           container.innerHTML = `
             <div class="result-card result-success">
               <div class="result-title">✅ ¡Transferencia Encontrada!</div>
-              <div class="amount-highlight">Gs. ${new Intl.NumberFormat('es-PY').format(data.transfer.amount)}</div>
+              <div class="amount-highlight">Gs. ${new Intl.NumberFormat('es-PY').format(t.amount)}</div>
               
               <div class="result-detail">
                 <div class="detail-row">
                   <span class="detail-label">Cliente:</span>
-                  <span class="detail-val">${data.transfer.payer_name}</span>
+                  <span class="detail-val">${payer}</span>
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Banco Emisor:</span>
-                  <span class="detail-val">${data.transfer.payer_bank || 'SIPAP'}</span>
+                  <span class="detail-val">${bank}</span>
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Comprobante:</span>
-                  <span class="detail-val">#${data.transfer.receipt_number || data.transfer.operation_id}</span>
+                  <span class="detail-val">#${receipt}</span>
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Fecha/Hora:</span>
-                  <span class="detail-val">${data.transfer.operation_date}</span>
+                  <span class="detail-val">${date}</span>
                 </div>
               </div>
 
-              <button type="button" class="btn btn-claim" onclick="handleClaim(${data.transfer.id})">
+              <button type="button" class="btn btn-claim" onclick="handleClaim(${t.id})">
                 💰 Confirmar y Cobrar
               </button>
             </div>
           `;
         } else if (data.found && data.status === 'already_claimed') {
           playErrorTone();
+          const t = data.transfer;
+          const payer = t.payerName || t.payer_name || 'Desconocido';
+          const receipt = t.receiptNumber || t.receipt_number || t.operationId || t.operation_id || 'S/N';
+          const claimedAt = data.claimedAt || data.claimed_at || 'Registrado';
+
           container.innerHTML = `
             <div class="result-card result-claimed">
               <div class="result-title">⚠️ ¡COMPROBANTE YA COBRADO!</div>
               <p style="margin-bottom: 12px; font-size: 14px;">
-                Esta transferencia de <strong>Gs. ${new Intl.NumberFormat('es-PY').format(data.transfer.amount)}</strong> a nombre de <strong>${data.transfer.payer_name}</strong> ya fue utilizada.
+                Esta transferencia de <strong>Gs. ${new Intl.NumberFormat('es-PY').format(t.amount)}</strong> a nombre de <strong>${payer}</strong> ya fue utilizada.
               </p>
               <div class="result-detail">
                 <div class="detail-row">
                   <span class="detail-label">Comprobante:</span>
-                  <span class="detail-val">#${data.transfer.receipt_number || data.transfer.operation_id}</span>
+                  <span class="detail-val">#${receipt}</span>
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Hora del cobro:</span>
-                  <span class="detail-val">${data.claimed_at || 'Registrado'}</span>
+                  <span class="detail-val">${claimedAt}</span>
                 </div>
               </div>
               <p style="font-size: 13px; font-weight: 700; color: #fca5a5;">
